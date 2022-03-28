@@ -1,0 +1,243 @@
+---
+title: "Curso ecología de comunidades en R - clase 3"
+author: "Stephanie Hereira Pacheco"
+output:
+  pdf_document:
+    highlight: pygments
+    toc: true
+    toc_depth: 2
+  html_document: default
+editor_options: 
+  markdown: 
+    wrap: sentence
+bibliography: references.bib
+---
+
+# Análisis multivariados en datos ecológicos
+
+En este capítulo vamos a explorar las diferentes técnicas de análisis multivariado para explorar nuestros datos ecológicos o biológicos.
+
+## Matrices de (dis)similitud
+
+Como lo vimos en el módulo teórico las matrices de dis(similitud) son de gran utilidad para muchos análisis en ecología de comunidades.
+Así que primero veamos como obtener nuestras matrices.\
+R posee una función predeterminada para obtenerla: **dist()**. 
+Inicialmente llamaré al paquete vegan para cargar la data de **varespec**, esta data nos presenta 44 especies  de pastos de liquenes (lichen pastures), los nombres de las columnas son nombres formados de los nombres cientificos de estas especies y los valores que nos presenta son de cobertura estimada:
+
+
+```{r, warning=FALSE, message=FALSE}
+library(vegan)
+data("varespec")
+head(varespec)
+```
+
+\
+
+Ahora sí apliquemos la función **dist()** para obtener una matriz euclidiana:
+
+```{r}
+eucl_dist<- dist(varespec, method = "euclidean")
+eucl_dist
+```
+
+Dentro de los métodos que podemos escoger con esta función encontramos: "euclidean", "maximum", "manhattan", "canberra", "binary" o "minkowski".
+Como vemos la mayoria de estas distancias no son tan aplicadas en ecologia sino en otros tipos de datos como los económicos.
+
+El paquete **vegan()** tiene también su función para obtener las matrices de distancia y es **vegdist()**, siguiendo el ejemplo anterior:
+
+```{r}
+eucl_dist<- vegdist(varespec, method = "euclidean")
+eucl_dist
+```
+
+\
+
+La ventaja de esta función es que posee métodos como "manhattan","canberra", "clark", "bray", "kulczynski", "jaccard", "gower", "altGower", "morisita", "horn", "mountford", "raup", "binomial", "chao", "cao", "mahalanobis", "chisq" ó "chord" que suelen ser distancias más conocidas y aplicables en ecología de comunidades.
+\
+
+
+## Análisis de agrupamiento
+
+El análisis de clusters o agrupamiento se aplica sobre una matriz de distancia previamente obtenida.
+Como vimos en el módulo teórico hay varios métodos para realizar este clustering, tales como: simple (single), completo (complete) y promedio (average).
+La función **hclust()** de R nos permite explorar todas estas formas y otras más como ward.D2, mendian y centroid, comúnmente usados en análisis de datos biológicos.
+Apliquemosla sobre nuestra matriz previament generada:
+\
+
+```{r}
+clusters<-hclust(eucl_dist, method = "complete")
+```
+\
+
+Para visualizar nuestros clusters o mejor llamado dendograma usamos la función **plot()**:
+
+```{r}
+plot(clusters)
+```
+
+Con el paquete **ape()** podemos formatear de diferentes formas nuestro dendograma:
+
+```{r}
+library("ape")
+par( mfrow= c(1,3) )
+plot(as.phylo(clusters), cex = 0.6)
+plot(as.phylo(clusters), cex = 0.6, type = "unrooted")
+plot(as.phylo(clusters), type = "fan")
+```
+
+## Medida de la distorsión
+
+Si nos interesa evaluar la bondad o qué tan bien nuestro dendograma explica nuestros datos entonces debemos medirlo a través de una matriz cofenética.
+En primer lugar se calcula la matriz cofenética con la función **cophenetic()** , que resulta de obtener una nueva matriz a partir del dendrograma y luego se calcula la correlación de Pearson entre la matriz cofenética y la matriz original.
+\
+
+```{r}
+mat.clusters<- cophenetic(clusters)
+cor(mat.clusters, eucl_dist, method = "pearson")
+```
+
+En este caso el coeficiente nos dio 0.8 lo cual está bien, entre más cercano a 1 nos dice qué tan bien correlacionados están y que mi dendograma explica en buena medida mis datos.
+\
+
+## Análisis de ordenación canónica
+
+Hay diversos tipos métodos de ordenación con los que podemos explorar nuestros datos ecológicos.
+R presenta diversas funciones para obtenerlas:
+
+| Método de Ordenación | Función       | Paquete    |
+|----------------------|---------------|------------|
+| PCA                  | princomp      | stats      |
+|                      | prcomp        | stats      |
+|                      | PCA           | FactoMineR |
+|                      | **rda**       | vegan      |
+| PCoA                 | cmdscale      | stats      |
+|                      | pcoa          | ape        |
+|                      | **wcmdscale** | vegan      |
+| NMDS                 | **metaMDS**   | vegan      |
+|                      | isoMDS        | MASS       |
+| CA                   | CA            | FactoMineR |
+|                      | corresp       | MASS       |
+|                      | **cca**       | vegan      | 
+
+\
+
+## PCA
+
+La función en vegan para PCA es rda(), que técnicamente significa Análisis de redundancia.
+No entraré en RDA (que al fin no tratamos previamente), pero cuando se ejecuta esta función sobre una matriz de especies sin ninguna variable ambiental, hace un PCA.
+En este ejemplo trabajaremos con otra data de ejemplo llamada **dune**, que son datos de vegetación de praderas de dunas, dunas, tienen valores de clase de cobertura de 30 especies en 20 sitios:
+
+```{r}
+data("dune")
+data("dune.env")
+```
+
+Ahora corremos el PCA:
+ 
+```{r}
+dune_pca <- rda(dune)
+sum_dune_pca <- summary(dune_pca)
+head(sum_dune_pca)
+```
+
+
+Para visualizarlo usamos la función **biplot()**
+
+```{r}
+biplot(dune_pca)
+ordihull(dune_pca, groups = dune.env$Management, col = c("red", "green", "blue", "black"))
+man_names<- levels(dune.env$Management)
+legend("topright",col = c("red", "green", "blue", "black"), lty = 1, legend = man_names )
+```
+
+## PCoA
+
+Usaremos la misma matriz para calcular PCoA y dibujar el diagrama de ordenación.
+Recuerden que la ventaje de este método es poder uscar cualquier tipo de matriz de distancia que deseemos:
+
+```{r}
+d <- vegdist(dune, method = "jaccard")
+ord <- wcmdscale(d, eig = TRUE)
+ordiplot(ord, display = 'sites', type = 'text')
+barplot (ord$eig, las = 3, ylab = 'eigenvalues')
+```
+
+## NMDS
+
+\
+El objetivo de NMDS es colapsar la información de múltiples dimensiones (p. ej., de múltiples comunidades, sitios, etc.) en solo unas pocas, para que puedan visualizarse e interpretarse. 
+
+\
+```{r}
+nmds <- metaMDS(dune, distance = "bray", k = 2)
+```
+\
+Visualizando:
+\
+```{r}
+plot(nmds)
+ordiplot(nmds,type="n") 
+orditorp(nmds,display="species",col="red",air=0.01) 
+orditorp(nmds,display="sites",cex=1.25,air=0.01)
+ordihull(nmds, groups = dune.env$Management, col = c("red", "green", "blue", "black"))
+```
+\
+De esta manera visualizamos nuestros datos o coordenadas:
+\
+```{r}
+head(scores(nmds, display = "species"))
+head(scores(nmds, display = "sites"))
+```
+\
+
+## CCA
+
+También conocido como análisis de correspondencia canónica.
+
+Los métodos de ordenación anteriores son ordenaciones "sin restricciones", lo que significa que la ordenación se realiza solo considerando los recuentos de especies (counts).
+
+La ordenación restringida es apropiada para lo que es común en los datos ecológicos: una matriz de comunidades y otra matriz de características ambientales o fisicoquímicas.
+
+
+Con la ordenación restringida, podemos preguntarnos cómo se relacionan las variables ambientales con la composición de la comunidad.
+
+Veamoslo con un ejemplo:
+
+```{r}
+data("varespec") #especies
+data("varechem") #fisicoquímicos
+vares_cca <- cca(varespec ~ N+P+K+Ca+Mg+S+Al+Fe+Mn+Zn+Mo+Baresoil+Humdepth+pH , data=varechem)
+summary(vares_cca)
+```
+
+Ahora, visualicemos los resultados en un biplot:
+
+```{r}
+plot(vares_cca)
+```
+
+Si queremos saver cuales son las variables con más peso en el análisis ocupamos la función **envfit()**.
+
+```{r}
+envfit(vares_cca  ~ N+P+K+Ca+Mg+S+Al+Fe+Mn+Zn+Mo+Baresoil+Humdepth+pH ,
+       data=varechem )
+```
+\
+
+## perMANOVA
+\
+Análisis de varianza multivariante permutacional (perMANOVA).
+
+
+La evaluación de las diferencias en la composición de la comunidad se realiza con el análisis de varianza multivariado permutacional.
+
+Estas pruebas se realizan sobre distancias, es decir, evalúan las diferencias entre comunidades en función de la disimilitud.
+
+```{r}
+dune_perm <- adonis(dune ~ Management+Use+Moisture, data = dune.env, method = "euclidean")
+dune_perm2 <- adonis(dist(dune) ~ Management+Use+Moisture, data = dune.env)
+
+dune_perm;dune_perm2
+```
+
+Como vemos el input puede ser una matriz de distancia o una data de comunidades pero indicandole la distancia que queremos ocupar.

@@ -1,0 +1,30 @@
+---
+title: "Curso ecología de comunidades en R - clase 2"
+author: "Stephanie Hereira Pacheco"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 2
+  html_document: default
+editor_options: 
+  markdown: 
+    wrap: sentence
+bibliography: references.bib
+---
+## Estadística descriptiva en datos ecológicos
+
+1. Normalidad: qqnorm, qqline (residuales usando lm)
+2. shapiro y/o histograma
+3. bartlett.test (ecología de comuniades) ó gráfico
+4. análisis de tablas de contingencia (no paramétrica) : chisq.test (no deben tener tamaños pequeños)
+y fisher.test 
+5. analisis 1 dato cuantitativo y 2 grupos independientes : t.test (paramétrica) y wilcox.test (umanwithney, no paramétrica)
+6. 1 variable cuantitativa y 2 grupos dependientes: t.student pareada (varias réplicas de una milpa) y wilcox.test (pareada)
+7. una variable cuantitativa con dos grupos independientes o más: anova 1 vía (paramétrica) y kruskall-walis (no paramétrica)
+8. 1 varible cuantitva con dos o más grupos dependientes: anova por bloques (aov, paramétrica) y prueba de friedman (versión no paramétrica).
+9. anova y t.test para medidas repetidas.
+10. correlación lineal simple : cor.test (pearson o spearman, parametrica y no paramétrica)
+11. regresión lineal simple (lm.summary.aov)
+12. lm, glm, glmm
+
+

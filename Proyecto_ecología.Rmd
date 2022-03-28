@@ -1,0 +1,38 @@
+---
+title: "Ecología de comunidades en R- Proyecto"
+author: "Stephanie Hereira Pacheco"
+output:
+  pdf_document:
+    toc: false
+  html_document: default
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+# Proyecto curso Ecología de comunidades en R
+
+1.  Escoger un dataset para trabajar: En este primer paso podemos escoger algunos de los datasets vistos o trabajar con uno de nuestro trabajo/carrera/investigación (importarlo a R).
+    Los datasets que pueden ser aplicables a usar son los que hemos visto como los de hillR, iNext y hilldiv.
+    Y de otros paquetes como vegan.
+    Sin embargo, te animo a que uses los datos de tu trabajo para que trabajes con datos reales (en caso que uses datos reales si puedes compartirlo para mi revisión estaría bien pero si son datos publicados o que no es posible compartir sólo le detallista con los comentarios como poner los outputs y resultados de cada paso).
+
+2.  Crear un script que se llame "**Proyecto_ecología.R**" y en este script escribe todo lo que vayamos a hacer en este proyecto.
+    Describe cada paso que des usando el "\#" para los comentarios y explicando cada paso en detalle.
+    Ser lo más detallado posible en cada paso.
+
+3.  Explora este dataset, revisa qué tipo de variables tienes y cuál es la pregunta de investigación que te interesa responder.
+    ***Nota: Poner todos estos pasos en el script.***\
+
+4.  Inicialmente vamos a practicar los tipos de muestreo, así que escoge **UN** tipo de muestreo y haz un subset o subsample de tus datos originales.
+
+5.  Utiliza **UNO** de los tres paquetes vistos para calcular diversidad (hillR, iNext y hilldiv) y computa los índices de diversidad en el marco de los números de Hill (a nivel q=0, q=1 y q=2) y realiza una gráfica del tipo que quieras para ilustrar estos resultados.
+
+6.  Escoge **UNO** de estos índices calculados y aplica **UN** estadístico descriptivo de los vistos.
+    ***Nota: recuerda probar normalidad antes de escoger la prueba estadística a realizar, también revisa este valor bajo qué condiciones quieres probarlo (por ejemplo, por tratamiento, por sexo, por especie, etc). Coloca detalladamente el porqué de tus pasos y tus decisiones.***
+
+7.  Esocoge **UN** tipo de matriz de distancia dependiendo de tus datos (por ejemplo, euclidiana, bray-curtis, etc) y obtén dicha matriz.
+    Luego escoge **UN** tipo de método de ordenación a aplicar y grafica tu resultado.
+    También aplica una prueba estadística a tu matriz de distancia para evaluar alguna variable (por ejemplo PERMANOVA, ANOSIM).
+
+8.  Siente libertad de hacer otros gráficos y/o pruebas si quieres practicar pero lo mínimo que solicito son los expuestos en los puntos anteriores.

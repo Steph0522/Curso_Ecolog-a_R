@@ -1,0 +1,237 @@
+---
+title: "Ecología de comunidades en R- clase final"
+author: | 
+  | Ph D.Stephanie Hereira-Pacheco 
+  | CTBC
+  | UATx
+date: "`22 - 03 - 2022`"
+output: 
+ beamer_presentation:
+    theme: "Boadilla"
+    colortheme: "beaver"
+    fonttheme: "structurebold"
+fontsize:  9 pt
+---
+
+
+## Curvas de Acumulación de Especies
+
+```{r, warning=FALSE, message=FALSE}
+library(vegan)
+data("BCI")
+head(BCI)[1:4,1:4]
+```
+## Curvas de Acumulación de Especies
+
+```{r, warning=FALSE, message=FALSE}
+#por sitios
+sac <- specaccum(BCI)
+plot(sac, ci.type="polygon") #ver vegan para opciones
+```
+
+## Curvas de Acumulación de Especies
+
+```{r, warning=FALSE, message=FALSE}
+#por individuos
+sac <- specaccum(BCI, method = "rarefaction")
+plot(sac, xvar = "individual", ci.type="polygon") 
+```
+
+## Rarefacción
+
+```{r}
+Srar <- rarefy(BCI, min(rowSums(BCI)))
+Srar
+```
+
+## Rarefacción
+
+```{r}
+#para un número establecido
+Srar <- rarefy(BCI, 1000)
+Srar
+```
+
+## Rango - Abundancia
+
+Los índices de diversidad son indicadores de la distribución de la abundancia (o proporción) de las especies.
+Podemos visualizar esta diversidad mediante las gráficas de abundancia vs rango.
+
+```{r, warning=FALSE, message=FALSE}
+#install.packages("BiodiversityR")
+library(BiodiversityR)
+#usando BiodiversityR
+RkAb <- rankabundance(BCI)
+head(RkAb) #especies ordenadas según su abundancia
+```
+
+## Rango - Abundancia
+
+```{r, warning=FALSE, message=FALSE}
+#gráfica de rango-abundancia
+rankabunplot(RkAb, scale='abundance', addit=FALSE, specnames=c(1))
+```
+
+## betapart
+
+Primero revisaremos el paquete **betapart** que introduce los conceptos y funciones para calcular diversidad beta teniendo en cuenta el recambio (turnover) y el anidamiento (nestedness) del artículo que revisamos previamente en el módulo anterior.
+
+Para esto definiremos un set de ejemplo, y diremos que las tres primeras columnas pertenecen a un bosque no perturbado y las tres siguientes a un bosque no perturbado:
+
+```{r}
+#install.packages("betapart")
+#install.packages("vegan")
+library(betapart)
+comm<- data.frame(comm =1:6,
+                         sp1=c(2,2,3,0,0,1), sp2=c(2,2,0,1,1,2),
+                         sp3=c(1,0,1,2,3,2), sp4=c(1,0,1,0,2,0),
+                         sp5=c(1,2,0,0,0,1),sp6=c(2,2,1,0,0,0),
+                         sp7=c(0,0,0,1,0,1),sp8=c(1,0,1,0,1,0), row.names = 1)
+
+
+groups <- factor(c(rep(1,3), rep(2,3)), 
+                 labels = c("noperturbado","perturbado"))
+```
+
+
+## Betapart
+
+Los índices Jaccard y Sorensen no consideran la abundancia de especies (q=0), así que convertiremos nuestra data a tipo incidencia (presencia/ausencia):
+
+```{r}
+ presabs<-ifelse(comm>0,1,0)
+```
+
+## Betapart
+
+Ahora, calcularemos el índice de Jaccard y sus particiones de recambio y anidamiento.
+En su lugar, podemos calcular el índice de Sorensen usando el argumento index.family="sorensen".
+
+```{r}
+ dist<-beta.pair(presabs, index.family="jaccard")
+```
+
+## Betapart
+
+
+Vemos que el resultado es una lista de tres matrices:
+
+Para obtener la partición del índice de recambio de Jaccard por pares entre comunidades, escriba: dist[[1]].
+Para obtener la partición de anidamiento, escriba: dist[[2]].
+Para obtener toda la diversidad beta: dist[[3]].
+
+## Betapart
+
+Si queremos comparar las diversidades beta de las comunidades agregadas por los tratamientos de "no perturbado" y "perturbado", podemos utilizar el análisis "betadisper" del paquete 'vegan':
+
+```{r, warning=FALSE, message=FALSE,  fig.align='center', out.width='80%'}
+bd<-betadisper(dist[[3]],groups)
+plot(bd)
+```
+
+## Betapart
+
+El gráfico de dispersión beta indica que hay una diferencia en la composición de especies de los fragmentos de bosque perturbado y no perturbado.
+Con estas matrices de distancia luego también podemos aplicar las diversidad técnicas multivariadas que vimos en el capítulo pasado como perMANOVA, cluster y los diferentes métodos de ordeniación para corroborar estas diferencias en composición.
+
+## Betapart
+
+Si queremos obtener estos mismos resultados pero para todos los sitios, entonces usamos la función **beta.multi()**:
+
+```{r}
+dist.multi<-beta.multi(presabs,index.family ="jaccard" )
+```
+
+## hillR
+
+Como vimos anteriormente con el paquete hillR además de diversidad alpha podemos obtener diversidad beta esto en el marco de los números de Hill.
+
+Utilizando la data de la vez pasada:
+
+```{r}
+library(hillR)
+set.seed(123)
+dummy_data <- FD::dummy
+comunidades<-  dummy_data$abun
+funciones <- dummy_data$trait
+arbol <- ape::rtree(n = ncol(comunidades), 
+                    tip.label = paste0("sp", 1:ncol(comunidades)))
+```
+
+## hillR
+
+
+Ahora, utlizando la función **hill_taxa_parti()** nos da varios valores:
+
+```{r}
+beta_q0<-hill_taxa_parti_pairwise(comunidades, q = 0, show_warning = FALSE, .progress = FALSE,
+                                  pairs = "full")
+```
+
+
+## hillR
+
+El output viene dado por los valores de:
+
+beta: dependiendo de la q 1- valor(q=0 Jaccard/Sorensen, q=1 Horn y q=2 Morisita-Horn).
+
+local_similarity : traslape de especies similar a Sorensen (q=0)
+
+region_similarity: traslape de especies similar a Jaccard (q=0)
+
+## hillR
+
+Ahora, si quisieramos tener las matrices como en el caso del paquete anterior sólo ponemos el argumento 'output=matrix':
+
+```{r}
+beta_q0_mat<-hill_taxa_parti_pairwise(comunidades, q = 0, show_warning = FALSE, 
+                                      .progress = FALSE, output = "matrix", pairs = "full")
+```
+
+## Otros paquetes
+
+Hay otros paquetes que podemos explorar que calculan indices similares, tales como:
+
+**adespacial (beta.div.comp)** : <https://github.com/sdray/adespatial>
+
+**hilldiv**: <https://github.com/sdray/adespatial>
+
+**MetagenomeDiversity.R** : <https://onlinelibrary.wiley.com/doi/10.1111/1755-0998.12923>
+
+## Phyloseq
+
+```{r, warning=FALSE, message=FALSE, fig.width=6, fig.height=6, fig.align='center'}
+library(tidyverse)
+library(phyloseq)
+data("GlobalPatterns")
+gp.ch = subset_taxa(GlobalPatterns, Phylum == "Chlamydiae")
+```
+
+Hagamos una curva de especies vs tamaño de muestra:
+
+```{r, warning=FALSE, message=FALSE, fig.width=5, fig.height=3, fig.align='center'}
+rarecurve(t(otu_table(gp.ch)), step=50, cex=0.5)
+```
+## Phyloseq
+
+```{r, fig.height=4, fig.width=8, fig.align='center'}
+plot_bar(gp.ch, "SampleType", fill="Genus", facet_grid=~Family)
+```
+
+## Phyloseq
+
+```{r, fig.height=4, fig.width=8, fig.align='center'}
+plot_richness(gp.ch, x="SampleType", measures=c("Observed", "Shannon")) +
+  geom_boxplot()
+```
+
+## Phyloseq
+
+```{r, fig.height=4, fig.width=4, fig.align='center', warning=FALSE, message=FALSE}
+library(tidyverse)
+wunifrac_dist = phyloseq::distance(gp.ch, method="unifrac", weighted=F) %>% 
+  replace_na(0)
+ordination = ordinate(gp.ch, method="PCoA", distance=wunifrac_dist)
+plot_ordination(gp.ch, ordination, color="SampleType") +
+  theme(aspect.ratio=1)
+```

@@ -1,0 +1,608 @@
+---
+title: "Ecología de comunidades en R- clase 1"
+author: | 
+  | Ph D.Stephanie Hereira-Pacheco 
+  | CTBC
+  | UATx
+date: "`14 - 03 - 2022`"
+output: 
+ beamer_presentation:
+    theme: "Boadilla"
+    colortheme: "beaver"
+    fonttheme: "structurebold"
+fontsize:  9 pt
+---
+
+## Ecología de comunidades en R
+
+El propósito de este módulo del curso es aplicar el cálculo u obtención de algunos conocimientos teóricos en el módulo I. Hay varios paquetes y funciones en R que nos permitirán explorar nuestros datos ecológicos. Inicialmente veremos un poco de los métodos de muestreo y la autocorrelación espacial.
+
+Luego, trataremos otros paquetes, quizás el más conocido y popularmente usado sea **vegan** sin embargo, trataremos de abordar algunos otros más que nos permitirán obtener más resultados y analizar nuestros datos de mejor manera.
+
+## Muestreo estadístico en R[^1]
+
+[^1]: <https://joanby.github.io/bookdown-estadistica-inferencial/muestreo-estad%C3%ADstico.html>
+
+En todo estudio estadístico distinguiremos entre población, (conjunto de sujetos con una o varias características que podemos medir y deseamos estudiar), y muestra (subconjunto de una población).
+
+Supongamos que tenemos definidio un transecto para nuestro muestreo o que tenemos pots o macetas en un área de nuestro invernadero o tal vez ya tenemos nuestros datos recolectados pero sólo queremos analizar una parte de estos. Para todos los casos anteriores debemos realizar un muestro estadístico.
+
+Ya en clases anteriores se nos fue detallado los tipos de muestreo en detalle, en esta sesión les mostraré como utilizar R como herramienta de ayuda para lograr este muestreo.
+
+## Muestreo aleatorio
+
+R nos permite realizar un muestreo simple con la función `sample()`.
+
+Para ilustrar mejor nuestro propósito que es estudiar los tipos de muestreo imaginemos que tenemos una urna conformada por bolas ennumeradas del 1 al 100 y queremos hacer un muestreo de esta población.
+
+```{r, echo=FALSE, out.width= "300px", fig.align='center', fig.cap="Urna de bolas del 1 al 100"}
+img_path<- "imagenes/"
+knitr::include_graphics(file.path(img_path,"p1.png"))
+```
+
+Ahora queremos muestrear de manera aletoria 15 bolas de estas 100.
+
+R nos da dos opciones de muestreo aleatorio, uno con reposición (haciendo `replace=TRUE`) y otro sin reposición (el caso contrario).
+
+## Muestreo aleatorio
+
+Para el muestreo con reposición de este ejemplo las bolas violetas son las escogidas para la muestra. La bola azul se ha escogido dos veces al ser el muestreo con reposición y sin reposición no hay repeticiones en nuestras bolas escogidas.
+
+```{r, echo=FALSE, out.width= "200px", fig.align='center', fig.cap="muestreo aletorio con reemplazo"}
+knitr::include_graphics(file.path(img_path,"p2.png"))
+```
+
+```{r, echo=FALSE, out.width= "200px", fig.align='center', fig.cap="muestreo aleatorio sin reemplazo"}
+knitr::include_graphics(file.path(img_path,"p3.png"))
+```
+
+## Muestreo aleatorio
+
+Ahora vamos a hacerlo en R:
+
+```{r}
+#muestreo aleatorio con reposición
+sample(1:100, 15, replace = TRUE)
+
+#muestreo aleatorio sin reposición
+sample(1:100, 15, replace = FALSE)
+```
+
+## Muestreo aleatorio
+
+Vamos a aplicar este tipo de muestreo a una data de ejemplo, ocuparemos la data de iris para hacer un ejemplo de muestreo en un conjunto de datos ya dado:
+
+```{r}
+set.seed(123)
+nrow(iris)
+flores_elegidas<- sample(1:150,5,replace=FALSE)
+muestra_iris_flores_elegidas <- iris[flores_elegidas,] 
+muestra_iris_flores_elegidas
+```
+
+## Muestreo aleatorio
+
+En este caso lo primero que hicimos fue utilizar la función **set.seed()** que se utiliza para que cada vez que realicemos un muestreo aleatorio y lo guardemos como un objeto de R este siempre sea el mismo, porque al ser aleatorio sino 'sembramos o establecemos la semilla' entonces cada vez que lo corramos nos dará diferente. Luego hacemos el muestreo con el número de observaciones de nuestra data usando la sintaxis de subconjunto para usarlo como un filtro.
+
+## Muestreo aleatorio estratificado
+
+Se utiliza cuando la población está clasificada por estratos.
+
+Supongamos que nuestra urna de 100 bolas contiene 40 bolas de un color y 60 de otro color tal como muestra la figura:
+
+```{r, echo=FALSE, out.width= "300px", fig.align='center', fig.cap="muestreo aleatorio estratificado"}
+knitr::include_graphics(file.path(img_path,"p5.png"))
+```
+
+## Muestreo aleatorio estratificado
+
+Hagamoslo en R y vamos a muestrear 4 bolas de cada tipo de color:
+
+```{r}
+set.seed(234)
+bolas_rojas <- sample(1:40, 4, replace = FALSE)
+bolas_verdes<- sample(41:100, 4, replace = FALSE)
+
+rbind(bolas_rojas, bolas_verdes)
+```
+
+## Muestreo sistemático
+
+upongamos que los individuos de una población vienen dados en forma de una lista ordenada. El muestreo sistemático consiste en tomarlos a intervalos constantes escogiendo al azar el primer individuo que elegimos.
+
+```{r, echo=FALSE, out.width= "300px", fig.align='center', fig.cap="muestreo sistemático"}
+knitr::include_graphics(file.path(img_path,"p4.png"))
+```
+
+La figura anterior describe una muestra aleatoria sistemática de 15 bolas de nuestra urna de 100 bolas: hemos empezado a escoger por la bola roja oscura, que ha sido elegida al azar, y a partir de ella hemos tomado 1 de cada 7 bolas, volviendo al principio cuando hemos llegado al final de la lista de bolas.
+
+## Muestreo sistemático
+
+Hagamoslo en R:
+
+```{r}
+set.seed(15)
+primera_bola <- sample(1:100, 1)
+#primera_bolas<- 92
+incremento <-7
+bolas_elegidas <- seq(from=primera_bola,by=incremento,length.out=5)
+```
+
+## Muestreo por conglomerados
+
+Para realizarlo se escoge primero al azar unos subconjuntos en los que la población está dividida, a las que llamamos en este contexto conglomerados (clusters).
+
+Supongamos que las 100 bolas de nuestra urna se agrupan en 20 conglomerados de 5 bolas cada uno según las franjas verticales.
+
+Para obtener una muestra aleatoria por conglomerados de tamaño 15, escogeríamos al azar 3 conglomerados y la muestra estaría formada por sus bolas: los conglomerados escogidos están marcados en azul:
+
+```{r, echo=FALSE, out.width= "300px", fig.align='center', fig.cap="muestreo sistemático"}
+knitr::include_graphics(file.path(img_path,"p6.png"))
+```
+
+\newpage
+
+## Autocorrelación espacial - Índice de Morán
+
+Como vimos en clases anteriores hay diversos métodos para evaluar la autocorrelación espacial, tales como el índice de Morán, correlogramas y semivariogramas. En otras palabras medimos qué tan relacionados están los valores de una variable en función de las ubicaciones dónde se midieron.
+
+En este sesión veremos cómo calcular el índice de Morán. Para esto usaremos una base de datos de ejemplo en el cual varios medidores (32) ubicados en diversos puntos miden la cantidad de ozono y se quiere saber si hay o no autocorrelación espacial entre las ubicaciones. Vamos a cargar los datos y observarlos:
+
+```{r}
+ozone <- read.table("https://stats.idre.ucla.edu/stat/r/faq/ozone.csv",
+                    sep=",",header=T)
+head(ozone)
+```
+
+## Autocorrelación espacial - Índice de Morán
+
+Luego escogemos solo las variables geoespaciales (coordenadas) y luego obtenemos el inverso de la matriz de distancia euclidiana, por último hacemos 0 las mediciones de la diagonal de la matriz:
+
+```{r}
+ozone_coords<- cbind(ozone$Lon, ozone$Lat)
+ozone_dist <- as.matrix(dist(cbind(ozone$Lon, ozone$Lat)))
+
+ozone_dist_inv <- 1/ozone_dist
+diag(ozone_dist_inv) <- 0
+ 
+#ozone_dist_inv[1:5, 1:5]
+```
+
+## Autocorrelación espacial - Índice de Morán
+
+Luego cargamos la paquetería **ape** que tiene la función **Moran.I()**:
+
+```{r}
+library(ape)
+Moran.I(ozone$Av8top, ozone_dist_inv)
+```
+
+Basandonos en estos resultados, podemos rechazar la hipótesis nula de que hay una autocorrelación espacial cero presente en la variable Av8top en alfa = 0.05.
+
+## Autocorrelación espacial
+
+Si nos interesa evaluar los otros métodos que son gráficos puedes consultar los paquetes:
+
+-   `ncf()` y `pgirmess()`: para correlogramas
+
+-   `geoR()`, `gstat()` y `sp()`: para semivariogramas
+
+## hillR
+
+El paquete hillR contiene funciones para calcular la diversidad taxonómica, funcional y filogenética a través de los números de Hill.
+
+Para instalar este paquete usamos el comando:
+
+```{r, eval=FALSE}
+install.packages("hillR")
+# o instala la versión en desarrollo del github
+devtools::install_github("daijiang/hillR")
+```
+
+Usaremos la data de ejemplo para utilizar las funciones:
+
+```{r}
+set.seed(123)
+dummy_data <- FD::dummy
+comunidades<-  dummy_data$abun
+funciones <- dummy_data$trait
+arbol <- ape::rtree(n = ncol(comunidades), 
+                    tip.label = paste0("sp", 1:ncol(comunidades)))
+```
+
+## hillR
+
+En este caso, Lo primero es usar la función **'set.seed'** o sembrar semilla, para indicarle a R que nos guarde los cálculos en esta semilla y cada vez que lo corramos den el mismo valor (eso es cuando son muestreos aleatorios como es el caso de la función rarbol del paquete 'ape'.
+
+Definimos nuestras datas a usar:
+
+-   comunidades: tabla con counts o recuentos de especies (columnas) por sitio o muestra (filas).
+
+-   funciones : tabla con funciones y resultados (numéricos o categóricos) por especie descrita en nuestra tabla de comunidades. Especies como filas y funciones como columnas.
+
+-   arbol: objeto tipo "phylo" tipo lista con vértices y nodos describiendo relaciones filogenéticas.
+
+## hillR
+
+Veamos:
+
+```{r}
+head(comunidades)
+```
+
+```{r}
+head(funciones)
+```
+
+## hillR
+
+```{r}
+ head(arbol)
+```
+
+## **Calcular la diversidad taxonómica, funcional y filogenética de cada sitio o muestra (alfa diversidad).**
+
+```{r}
+library(hillR)
+```
+
+```{r}
+hill_taxa(comunidades, q = 0)
+```
+
+```{r}
+hill_func(comunidades, funciones, q = 0)
+```
+
+## **Calcular la diversidad taxonómica, funcional y filogenética de cada sitio o muestra (alfa diversidad).**
+
+```{r}
+hill_phylo(comunidades, arbol, q = 0) 
+```
+
+## **Calcular la diversidad taxonómica, funcional y filogenética de cada sitio o muestra (alfa diversidad).**
+
+Los resultados que nos da cada función son:
+
+1.  **hill_taxa()** nos da un vector con el va valor de diversidad alfa para cada sitio o muestra, q = 0 (por defecto) para obtener la riqueza de especies, q = 1 para obtener la entropía de shannon y q = 2 nos dará el inverso de simpson.\
+
+2.  **hill_func** nos dará una matrix con la información de:
+
+-   Q : Q de Rao,
+
+-   D_q : el numero efectivo de epecies distintas igualmente abundantes y funcionales
+
+-   MD_q : diversidad funcional media por especie, la suma efectiva de las distancias por pares entre una especie fija y todas las demás especies
+
+-   FD_q : diversidad funcional total, la distancia funcional total efectiva entre especies del conjunto\
+
+3.  **hill_phylo** nos dará un vector de diversidad filogenética basada en el número de Hill ('PD(T)', longitud total efectiva de la rama) para todos los sitios.
+
+## **Calcular la diversidad taxonómica, funcional y filogenética de cada sitio o muestra (alfa diversidad).**
+
+Si queremos calcular a otra q solo ponemos la que queremos, por ejemplo:
+
+```{r}
+hill_taxa(comunidades, q = 1)
+hill_taxa(comunidades, q = 2)
+```
+
+\
+
+## **Calcular la diversidad taxonómica, funcional y filogenética de a través de diferentes sitios o muestras.**
+
+En este caso será a través de todos los sitios o muestras.
+
+Este script calcula la diversidad gamma, alfa, y beta a traves de todas las comunidades o muestras asi como su similitud. Si comm\>2 la gamma diversidad es la diversidad juntada (pooled) del ensamble y la alfa es el promedio de la diversidad a través de todos los sitios y la beta is a traves de todas las comunidades.
+
+Además nos da la medida de homogeneidad MacArthur, la similtud local (traslape de especies / overlap similar al de Sorensen) y la similitud regional (traslape de especies / overlap similar al de Jaccard).
+
+## **Calcular la diversidad taxonómica, funcional y filogenética de a través de diferentes sitios o muestras.**
+
+```{r}
+hill_taxa_parti(comunidades, q = 0)
+```
+
+```{r}
+hill_func_parti(comunidades, funciones, q = 0)
+```
+
+```{r}
+hill_phylo_parti(comunidades, arbol, q = 0)
+```
+
+\
+
+## **Calcular la diversidad pareada taxonómica, funcional y filogenética**
+
+En este caso será a través de todos los sitios o muestras.
+
+Calcula la diversidad pareada gamma, alfa y beta para las comunidades así como similitud.\
+
+```{r}
+hill_taxa_parti_pairwise(comunidades, q = 0, show_warning = FALSE, .progress = FALSE)
+```
+
+## **Calcular la diversidad pareada taxonómica, funcional y filogenética**
+
+```{r}
+hill_func_parti_pairwise(comunidades, funciones, q = 0, show_warning = FALSE, .progress =FALSE)
+```
+
+## **Calcular la diversidad pareada taxonómica, funcional y filogenética**
+
+```{r}
+hill_phylo_parti_pairwise(comunidades, arbol, q = 0, show_warning = FALSE, .progress = FALSE) 
+```
+
+## iNEXT: (iNterpolation and EXTrapolation)
+
+Es un paquete disponible en R para rarefacción y extrapolación de la diversidad de especies en el marco de los números de Hill. También está disponible una versión en línea de iNEXT Online para usuarios sin experiencia en R.
+
+iNEXT se centra en tres medidas de los números de Hill de orden q: riqueza de especies (q=0), diversidad de Shannon (q=1, la exponencial de la entropía de Shannon) y diversidad de Simpson (q=2, la inversa de la concentración de Simpson).
+
+Para cada medida de diversidad, iNEXT utiliza la muestra observada de datos de abundancia o incidencia para calcular las estimaciones de diversidad para muestras enrarecidas y extrapoladas y los intervalos de confianza del 95 % (predeterminados) asociados
+
+## iNEXT: (iNterpolation and EXTrapolation)
+
+Además representa gráficamente los dos tipos siguientes de las curvas de rarefacción y extrapolación (R/E):
+
+-   Curvas de muestreo R/E basadas en el tamaño de la muestra: iNEXT calcula estimaciones de diversidad para muestras enrarecidas y extrapoladas hasta el doble del tamaño de la muestra de referencia (por defecto) o un tamaño especificado por el usuario. Este tipo de curva de muestreo traza las estimaciones de diversidad con respecto al tamaño de la muestra. El tamaño de la muestra se refiere al número de individuos en una muestra para datos de abundancia, mientras que se refiere al número de unidades de muestreo para datos de incidencia.
+
+-   Curvas de muestreo R/E basadas en la cobertura: iNEXT calcula estimaciones de diversidad para muestras enrarecidas y extrapoladas con integridad de la muestra (medida por la cobertura de la muestra) hasta el valor de cobertura del doble del tamaño de la muestra de referencia (por defecto) o una cobertura especificada por el usuario. Este tipo de curva de muestreo traza las estimaciones de diversidad con respecto a la cobertura de la muestra. Además de los dos tipos anteriores de curvas de muestreo, iNEXT también traza una curva de completitud de la muestra, que describe cómo varía la estimación de la cobertura de la muestra en función del tamaño de la muestra. La curva de integridad de la muestra se puede considerar como un puente que conecta los dos tipos de curvas mencionados anteriormente.
+
+## iNEXT: (iNterpolation and EXTrapolation)
+
+Para instalar este paquete:
+
+```{r, eval=FALSE}
+## instalando iNEXT del CRAN
+install.packages("iNEXT")
+
+## instalando la versión de desarrollo
+install.packages('devtools')
+library(devtools)
+install_github('AnneChao/iNEXT')
+```
+
+## iNEXT: (iNterpolation and EXTrapolation)
+
+```{r, warning=FALSE, message=FALSE}
+## cargando el paquete
+library(iNEXT)
+library(ggplot2)
+```
+
+La función principal es:
+
+iNEXT(x, q=0, datatype="abundance", se=TRUE, conf=0.95, nboot=50)
+
+Donde:
+
+-   x : es la data,
+
+-   datatype: puede ser "abundance" ó "incidence_raw", ó "incidence_freq",
+
+-   se: TRUE o FALSE si se quiere hacer un muestreo tipo 'bootsrap',
+
+-   conf: el intervalo de confianza,
+
+-   nboot: número de replicaciones de 'bootsrap'
+
+## iNEXT: (iNterpolation and EXTrapolation)
+
+Correremos el ejemplo con la data del paquete, denominada **bird**:
+
+```{r}
+data(bird)
+str(bird)
+out <- iNEXT(bird, q=c(0, 1, 2), datatype="abundance")
+```
+
+## iNEXT: (iNterpolation and EXTrapolation)
+
+Si vemos el output de iNEXT nos da una lista con tres elementos:
+
+-   \$DataInfo que nos resume la información de la data
+
+-   \$iNextEst los estimados para las muestras rarificadas y extrapoladas (datos para las curvas)
+
+-   \$AsyEst muestra la diversidad estimada
+
+## iNEXT: (iNterpolation and EXTrapolation)
+
+```{r}
+ggiNEXT(out, type=1, facet.var="site")
+```
+
+## iNEXT: (iNterpolation and EXTrapolation)
+
+```{r}
+ggiNEXT(out, type=2)
+```
+
+## iNEXT: (iNterpolation and EXTrapolation)
+
+```{r}
+ggiNEXT(out, type=3, facet.var="site")
+```
+
+## iNEXT: (iNterpolation and EXTrapolation)
+
+```{r}
+ggiNEXT(out, type=3, facet.var="order")
+```
+
+## iNEXT: (iNterpolation and EXTrapolation)
+Ahora, si se quiere sólo los índices basandonos ya sea en abundancia o incidencia y en tamaño o cobertura, usamos la función **estimateD**, así:
+
+```{r, warning=FALSE, message=FALSE}
+estimateD(bird, datatype="abundance", base="coverage",  conf=0.95)
+```
+
+## iNEXT: (iNterpolation and EXTrapolation)
+
+Vamos a ver un ejemplo pequeño con datos de incidencia (presencia/ausencia):
+```{r, warning=FALSE, message=FALSE, fig.height=4}
+data(ciliates)
+#str(ciliates)
+out2 <- iNEXT(ciliates, q=c(0,1,2), datatype="incidence_raw")
+ggiNEXT(out2, facet.var="order", type=1)
+```
+
+
+## iNEXT: (iNterpolation and EXTrapolation)
+
+Este paquete tambien cuenta con otras funciones de interes, tales como:
+
+-   ChaoEntropy() : Estimación de la entropía/diversidad de Shannon
+
+-   ChaoRichness(): Estimación de la riqueza de especies
+
+-   ChaoShannon(): Estimación de la entropía/diversidad de Shannon
+
+-   ChaoSimpson(): Estimación del índice de Gini-Simpson o diversidad de Simpson
+
+-   ChaoSpecies(): Estimación de la riqueza de especies
+
+-   EstSimpson: Estimación del índice de Gini-Simpson o diversidad de Simpson
+
+## hilldiv()
+
+`hilldiv`es un paquete de R que proporciona un conjunto de funciones para asistir en el análisis de la diversidad basados ​​en números de Hill, usando tablas de especies o de OTU/ASV y árboles filogenéticos como entradas. El paquete incluye funciones para la medición de la (filo)diversidad, el trazado del perfil de la (filo)diversidad, la comparación de la (filo)diversidad entre muestras y grupos, la partición de la (filo)diversidad y la medición de la (di)similitud. Todos estos basados ​​en números de Hill basados ​​en la abundancia y en la incidencia. Para encontrar más información sobre el marco de los números de Hill aplicados a diversidad lee el siguiente artículo: [artículo_Hill](https://doi.org/10.1111/1755-0998.13014 "art").
+
+Para instalar este paquete:
+
+```{r, eval=FALSE}
+#versión de CRAN
+install.packages("hilldiv")
+
+#versión en desarrollo
+install.packages("devtools")
+library(devtools)
+install_github("anttonalberdi/hilldiv")
+```
+
+Cargamos la librería:
+
+```{r}
+library(hilldiv)
+```
+
+## hilldiv()
+
+La función principal es **hilldiv()** y la data de ejemplo es 'bat.diet' que es una otutable data con diferentes individuos de diferentes especies de murciélagos.
+
+```{r}
+data(bat.diet.otutable)
+data(bat.diet.tree)
+data(bat.diet.hierarchy)
+```
+
+## hilldiv()
+
+```{r}
+bat.diet.otutable[1:3, 1:4]
+class(bat.diet.tree)
+head(bat.diet.hierarchy)
+```
+
+## hilldiv()
+
+Usemos la función principal para calcular la diversidad filogenética y taxonómica:
+
+```{r}
+#Basado en abundancia
+
+hill_div(bat.diet.otutable,0)
+
+hill_div(bat.diet.otutable, 1, bat.diet.tree)
+```
+
+## hilldiv()
+
+```{r}
+#Basado en incidencia
+
+hill_div(to.incidence(bat.diet.otutable,bat.diet.hierarchy),2)
+```
+
+## hilldiv()
+
+También podemos graficar esto haciendo un perfil de diversidad, así:
+
+```{r, warning=FALSE, message=FALSE, fig.height=4}
+profile.multiplegroups <- div_profile(bat.diet.otutable,hierarchy=bat.diet.hierarchy,level="alpha")
+div_profile_plot(profile.multiplegroups)
+```
+
+## hilldiv()
+
+Además, tiene una funcion para comparaciones pareadas que evalúa automáticamente si los datos cumplen las propiedades de las estadísticas paramétricas y realiza la prueba adecuada en consecuencia: T de Student, ANOVA, Wilcoxon o Kruskal-Wallis. Si el argumento post hoc se establece como TRUE, las comparaciones de grupos múltiples se complementan con pruebas post hoc por pares, ya sea la prueba de Tukey (paramétrica) o la prueba de Dunn con corrección de Benjamini-Hochberg (no paramétrica).
+
+## hilldiv()
+
+```{r, fig.height=6}
+pareada<-div_test(bat.diet.otutable,qvalue=0,hierarchy=bat.diet.hierarchy,posthoc=TRUE)
+div_test_plot(pareada,chart="jitter",posthoc=TRUE,threshold=0.5)
+```
+
+## hilldiv()
+
+Por otro lado, tiene una función que calcula la cobertura estimada en el marco de los númros de Hill, en otras palabras y en este caso, evaluar si la profundidad de secuenciación de cada muestra es suficiente para recuperar toda la diversidad de una muestra.
+
+```{r}
+head(depth_cov(bat.diet.otutable,qvalue=1))
+```
+
+## hilldiv()
+
+Tiene otras funciones que pueden ser de interés tales como:
+
+-   alpha_div(): Cálculo de diversidad alfa (sistema)
+
+-   gamma_div(): Cálculo de diversidad gamma
+
+-   beta_dis(): Cálculo de (des)similitud basado en diversidades beta
+
+-   UqN(): Cálculo de traslape de tipo Jaccard a partir de diversidades beta
+
+-   CqN(): Superposición/Traslape tipo Sørensen de diversidades beta
+
+-   SqN(): Complemento del recambio de tipo Jaccard de diversidades beta
+
+-   VqN(): Complemento del recambio de tipo Sørensen de diversidades beta
+
+
+
+## Visualizar nuestros datos de diversidad
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggpubr)
+q0<-hill_div(bat.diet.otutable,0) %>% as.data.frame() %>% mutate(
+  qs="q0") %>% rownames_to_column(var = "Sample")
+q1<-hill_div(bat.diet.otutable,1)%>% as.data.frame() %>% mutate(
+  qs="q1") %>% rownames_to_column(var = "Sample")
+q2<-hill_div(bat.diet.otutable,2)%>% as.data.frame() %>% mutate(
+  qs="q2") %>% rownames_to_column(var = "Sample")
+
+diversidad_data<- rbind(q0,q1,q2) %>%  full_join(bat.diet.hierarchy)
+colnames(diversidad_data)[2]<- "value"
+```
+
+## Visualizar nuestros datos de diversidad
+
+```{r, fig.height=4}
+ggboxplot(data = diversidad_data, x = "Species", y = "value", 
+          fill = "Species", facet.by = "qs")+theme(
+            axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
+
+## Visualizar nuestros datos de diversidad
+
+```{r, fig.height=4}
+ggbarplot(data = diversidad_data, x = "Species", y = "value", 
+          fill = "Species", facet.by = "qs", add = "mean_sd")+theme(
+            axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
+

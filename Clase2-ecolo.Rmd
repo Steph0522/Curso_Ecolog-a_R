@@ -1,0 +1,398 @@
+---
+title: "Curso ecología de comunidades en R - clase 2"
+author: "Stephanie Hereira Pacheco"
+output:
+  pdf_document:
+    highlight: pygments
+    toc: true
+    toc_depth: 2
+  html_document: default
+editor_options: 
+  markdown: 
+    wrap: sentence
+bibliography: references.bib
+---
+
+# Estadística descriptiva en datos ecológicos
+
+Inicialmente veremos algunas estadísticos básicos de R que son aplicables en la mayoría de nuestros datos incluyendo los datos ecológicos.
+Trabajaremos con el dataset conocido como **iris**, que es un dataset ejemplo muy útil para explorar todas estas funciones básicas.
+
+## Probando normalidad 
+
+Como ya vimos en el módulo anterior hay diversas estrategias para explorar la normalidad de nuestros datos o mediciones tales como los qqplots, la prueba de shapiro y los histogramas de frecuencia.
+Usando el dataset **iris**:
+
+```{r, echo=FALSE}
+img_path <- "/home/steph/Documents/CURSOS/My_repositories/Curso_Ecología/Ecología/imagenes/"
+```
+
+```{r}
+data("iris")
+str(iris)
+```
+
+Ahora si, exploremos la normalidad de la variable "Ancho del Sépalo":
+
+```{r, out.width='70%', fig.align='center'}
+qqnorm(iris$Sepal.Width)
+qqline(iris$Sepal.Width)
+```
+
+Y numéricamente:
+\
+
+```{r}
+shapiro.test(iris$Sepal.Width)
+```
+\
+
+Otra gráfica que nos permite ver cómo es la distribución de nuestros datos es un histograma de frecuencias:
+
+```{r, out.width='70%', fig.align='center'}
+hist(iris$Sepal.Width)
+```
+
+De acuerdo a los diferentes métodos utilizados la variable ancho del sépalo sigue una distribución normal. Ya que en el qqplot los puntos se ven cerca de la línea, shapiro dio una p>0.05 y el histograma muestra un tipo gaussiano o campana. 
+
+```{r, echo=FALSE, eval=FALSE}
+#en caso de explorar otras normalidades
+#install.packages("fitdistrplus")
+#install.packages("logspline")
+library(fitdistrplus)
+library(logspline)
+descdist(iris$Sepal.Width, discrete = FALSE)
+```
+
+Ahora exploremos la normalidad en un modelo lineal simple declarado:
+
+```{r, out.width='40%', fig.align='center'}
+modelo <- lm(Sepal.Width ~ Species, data = iris) 
+plot(modelo, which = 2)
+```
+\
+
+Son solo pocos puntos que se salen de la gráfica, así que asumimos normalidad de nuestro modelo.
+
+Para probar la homocedasticidad o la homogeneidad de varianzas, podemos aplicar la prueba de Barlett:
+\
+```{r}
+bartlett.test(iris$Sepal.Width, iris$Species)
+```
+\
+No hay diferencias significativas entre las varianzas de los grupos. Esto lo podemos ver gráficamente también:
+
+```{r, out.width='40%', fig.align='center'}
+plot(modelo, which = 1)
+```
+
+```{r}
+aggregate(Sepal.Width ~Species, data = iris, FUN = var) 
+```
+
+## Prueba de Chi-cuadrado y de Fisher (tablas de contingencia)
+
+Primero categorizaremos la variable *Largo del Sépalo* de **iris**, haciendo 'pequeño' las valores que estén por debajo de la mediana y 'grande' los que estén por encima de la mediana.
+
+```{r}
+iris$size_sepal <- ifelse(iris$Sepal.Length < median(iris$Sepal.Length),  "pequeño", "grande")
+```
+
+Gráficamente se ve así:
+
+```{r, out.width='60%', fig.align='center'}
+library(ggplot2)
+
+ggplot(iris) +
+  aes(x = Species, fill = size_sepal) +
+  geom_bar()
+```
+
+Luego construiremos una tabla de contingencia a partir de esto:
+```{r}
+tabla_contingencia<-table(iris$Species, iris$size_sepal)
+tabla_contingencia
+```
+
+Y aplicaremos las pruebas:
+```{r}
+chisq.test(tabla_contingencia)
+```
+
+```{r}
+fisher.test(tabla_contingencia)
+```
+\
+Así que rechazamos la hipótesis nula para la prueba de independencia Chi-cuadrado y de Fisher, esto significa que existe una relación significativa entre la especie y el tamaño del sépalo.
+
+
+## Análisis 1 variable cuantitativa y 2 grupos independientes
+
+```{r, warning=FALSE, message=FALSE}
+library(dplyr)
+iris_dos<- iris %>% filter(!Species == "versicolor")
+unique(iris_dos$Species)
+```
+
+**Paramétrica**
+
+```{r}
+t.test(iris_dos$Sepal.Width ~ iris_dos$Species)
+```
+\
+**No paramétrica:**
+
+```{r}
+wilcox.test(iris_dos$Sepal.Length ~ iris_dos$Species)
+```
+\
+
+## Análisis 1 variable cuantitativa y 2 grupos dependientes
+
+Tengamos una data de ejemplo de unos ratones a los que se pesaron al comienzo del experimento (aplicación del tratamiento) y al final, y deseamos saber si hay diferencias significativas en su peso:
+\
+
+```{r}
+#individuos
+ratones<- paste0("raton_", 1:10)
+#Peso antes 
+pa<-c(200.1, 190.9, 192.7, 213, 241.4, 196.9, 172.2, 185.5, 205.2, 193.7)
+#peso después
+pd<-c(392.9, 393.2, 345.1, 393, 434, 427.9, 422, 383.9, 392.3, 352.2)
+
+data_ratones<- data.frame(ratones=ratones, peso_antes=pa, peso_despues=pd)
+```
+\
+**Versión paramétrica:**
+
+```{r}
+t.test(data_ratones$peso_antes, data_ratones$peso_despues, paired=TRUE)
+```
+\
+**Versión no paramétrica:**
+
+```{r}
+wilcox.test(data_ratones$peso_antes, data_ratones$peso_despues, paired = TRUE)
+```
+
+
+## Análisis 1 variable cuantitativa y 2 o más grupos independientes:
+
+**Paramétrico:**
+
+```{r}
+modelo<- lm(data = iris, Sepal.Width ~ Species)
+anova_modelo<- aov(modelo)
+summary(anova_modelo)
+```
+\
+**No paramétrico:**
+
+```{r}
+kruskal.test(iris$Petal.Length, iris$Species)
+```
+\
+
+## Análisis 1 varible cuantitva y 2 o más grupos dependientes
+
+Un estudio pretende determinar si existe diferencia en como de bueno consideran los consumidores que es un vino dependiendo de la hora del día en la que lo toman.
+Para ello se selecciona a un grupo de 7 sujetos a los que se les da a probar un vino por la mañana, por la tarde y por la noche.
+En cada degustación se valora del 1 al 11 el vino (los degustadores no saben que es el mismo vino).
+\
+```{r}
+valoracion <- c( 9, 5, 2, 6, 3, 1, 5, 5, 5, 11, 5, 1, 8, 4, 3, 10, 4, 1, 7, 3, 4 )
+hora <- factor( rep( c( "mañana", "tarde", "noche" ), 7 ) )
+sujeto <- factor( rep( 1:7, each = 3 ) )
+datos <- data.frame( valoracion, hora, sujeto )
+head(datos)
+by(data = datos$valoracion, INDICES = datos$hora, FUN = median)
+```
+\
+**Versión no paramétrica:**
+
+```{r}
+friedman.test(valoracion, hora, sujeto)
+#valor medido, grupos, bloques
+```
+
+**Versión paramétrica (anova por bloques):**
+
+```{r}
+anova_bloques<- aov(lm(valoracion ~ hora+sujeto))
+summary(anova_bloques)
+```
+\
+
+## Análisis de medidas repetidas
+\
+Queremos realizar un análisis de medidas repetidas para los datos de rendimiento académico de seis alumnos.
+En cada alumno se ha medido a cinco tiempos diferentes su rendimiento, por tanto las muestras tomadas no son independientes entre si.
+Para poder analizar estos datos debemos considerar las muestras como relacionadas, es decir debemos realizar un ANOVA de medidas repetidas.
+\
+
+```{r}
+individuos<- factor(c(rep(1,5), rep(2,5), rep(3, 5), rep(4, 5), rep(5,5), rep(6,5)))
+tiempo<- factor(rep(1:5, 6))
+rendimiento<- c(8.5, 8.2,8.9, 7.7, 7.4,
+                9.8,8.9,8.9,8.8,8.1,
+                9.6,9.0, 9.3, 7.5, 7.1,
+                7.5, 7.8, 7.8, 4.5, 4.6,
+                5.8, 5.8, 5.9, 2.6, 1.2,
+                9.9, 9.8, 9.6, 8.6, 8.7)
+data_rendimiento<- data.frame(individuos=individuos, tiempo=tiempo, rendimiento=rendimiento)
+str(data_rendimiento)
+```
+\
+Vamos a realizar el análisis de medidas repetidas ANOVA paramétrico por medio del paquete ez.
+Para ello hay que indicar nuestros datos (data), nuestra variable (dv), nuestros individuos (wid) y el tiempo (within):
+
+**Versión paramétrica:**
+
+```{r, warning=FALSE, message=FALSE}
+#anova de medidas repetidas
+#install.packages("ez")
+library(ez)
+ezANOVA(data=data_rendimiento, dv=rendimiento, wid=individuos, within=tiempo)
+```
+\
+
+```{r}
+boxplot(rendimiento~tiempo, xlab="tiempo", 
+        ylab="Rendimiento académico", 
+        main="rendimiento alumnos con el paso del tiempo",
+        col="blue", data=data_rendimiento)
+```
+\
+Podemos ver en nuestros resultados que el tiempo es significativo, es decir, el rendimiento escolar cambia con el tiempo.
+Pero en este caso nuestros datos violan uno de los requisitos que es la esfericidad (test de Mauchly significativo), debemos fiarnos de la p de la **Sphericity corrections** que nos confirma lo que hemos deducido al principio.
+\
+**Versión no paramétrica:**
+\
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
+#install.packages("jmv")
+library(tidyverse)
+library(jmv)
+#cambiamos el formato de la data
+data_rendimiento_notidy<-data_rendimiento %>% mutate(tiempo =case_when(
+  tiempo== 1 ~ "T1",
+  tiempo== 2 ~ "T2",
+  tiempo== 3 ~ "T3",
+  tiempo== 4 ~ "T4",
+  tiempo== 5 ~ "T5")) %>% pivot_wider(names_from =tiempo, values_from = rendimiento )
+
+jmv::anovaRMNP(data_rendimiento_notidy, measures=vars(T1,T2,T3,T4,T5))
+```
+
+
+
+
+## Correlación lineal simple
+
+
+```{r}
+cor(iris$Petal.Length, iris$Petal.Width)
+cor(iris$Petal.Length, iris$Petal.Width, method = "spearman")
+
+```
+
+
+## Regresión lineal simple lm y glm
+
+```{r}
+modelo_lm <- lm(Petal.Width ~ Petal.Length, data = iris) 
+summary(modelo)
+```
+
+Con summary() podemos ver los coeficientes de la ecuación, en este caso son: para el intercepto -0.36 y para la pendiente es 0.41. De nuevo los valores p están por debajo de 0.05. Los coeficientes son la pendiente y el intercepto. Así que la ecuación queda -> Ancho_Petalo = Largo_Petalo*0.4157 - 0.3630
+
+Otro resultado importante es el R cuadrado que nos dice la bondad del ajuste del modelo, esto es la fracción de mis datos que es explicado por el modelo en este caso si miramos el valor ajustado, el modelo explica el 92% de mis datos.
+
+**glm()** se utiliza con otras distribuciones que no sean la distribución normal. Porque **lm()** asume la distribución normal de los datos. 
+\
+
+```{r}
+modelo_glm <- glm(Petal.Width ~ Petal.Length, data = iris) 
+summary(modelo)
+```
+\
+
+Si queremos visualizar el modelo lineal simple:
+```{r, warning=FALSE, message=FALSE}
+library(ggplot2)
+
+ggplot(iris, aes(x = Petal.Width, y = Petal.Length)) + 
+  geom_point() +
+  stat_smooth(method = "lm", col = "red") +
+  labs(title = paste("Adj R2 = ",signif(summary(modelo_lm)$adj.r.squared, 5),
+                     " P =",signif(summary(modelo_lm)$coef[2,4], 5)))
+
+```
+
+
+## Modelos lineales mixtos
+
+```{r, warning=FALSE, message=FALSE}
+library(readr)
+rabbit<- read_tsv("https://raw.githubusercontent.com/Steph0522/Curso_R_basico/main/Data/rabbit.tsv")
+head(rabbit)
+```
+
+Paramétrica:
+```{r, warning=FALSE, message=FALSE}
+library(lme4)
+library(nlme)
+lme.rabbit1 <- lmer(gain~ treat +(1|block), data=rabbit)
+lme.rabbit2 <- lme(gain~ treat, random = ~1|block, data=rabbit)
+
+anova(lme.rabbit1)
+anova(lme.rabbit2)
+```
+
+
+No paramétrica:
+```{r, eval=FALSE}
+lme.rabbit1 <- glmer(gain~ treat +(1|block), data=rabbit, family = "poisson")
+```
+
+*No correré este porque toma tiempo en correr pero sólo para que conozcan la función y puedan aplicarla si es de su interés.*
+
+## Transformación de datos
+
+Dependiendo de nuestros tipos de datos y de los análisis a realizar algunas veces es necesario filtrar nuestros datos (datos NA's o ceros) o también puede ser requerido transformar los datos.
+Por ejemplo con los datos de expresión de genes.
+
+En R podemos usar varias funciones para transformar datos:
+```{r, eval=FALSE}
+log() # aplicar el logartimo a nuestros datos
+scale() # escala o centra tus datos
+sqrt() #aplica la raiz cuadrada a nuestros datos
+```
+
+Ejemplo:
+```{r}
+data("pressure")
+str(pressure)
+cor(pressure$temperature, pressure$pressure)
+model<- lm(pressure ~ temperature, data = pressure)
+summary(model)
+shapiro.test(pressure$pressure)
+plot(pressure$pressure, pressure$temperature)
+```
+
+Transformando los datos:
+```{r, message=FALSE, warning=FALSE}
+library(dplyr)
+pressure_log<- pressure %>% mutate(pressure_log=log(pressure))
+model_log<-lm(pressure_log~ temperature, data=pressure_log)
+summary(model_log)
+```
+
+Visualizando:
+```{r}
+plot(pressure_log$pressure_log, pressure_log$temperature)
+
+ggplot(pressure_log, aes(x = pressure_log, y = temperature)) + 
+  geom_point() +
+  stat_smooth(method = "lm", col = "red")
+```
+
